@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Map with Info Popups</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      /* Set a fixed size for the map */
+      #map {
+        width: 100%;
+        height: 800px; /* Adjust this as needed */
+      }
+      /* Basic styling for the popup content */
+      .popup-content img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin-bottom: 10px;
+      }
+      .popup-content h3 {
+        margin: 0 0 5px;
+      }
+      .popup-content p {
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <!-- Include Leaflet JS once -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Initialize the map with a world view.
+        var map = L.map("map").setView([0, 0], 2);
+
+        // Use a tile layer without labels (CartoDB's light_nolabels).
+        L.tileLayer("https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+          maxZoom: 19,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        // Fetch marker data from your API.
+        fetch("https://hy6sxmw15g.execute-api.us-east-1.amazonaws.com/prod/getPhotoMarkers")
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (markers) {
+            var bounds = [];
+            markers.forEach(function (marker) {
+              var latlng = [marker.latitude, marker.longitude];
+              // Build the HTML content for the popup.
+              var popupContent = '<div class="popup-content">';
+              if (marker.imageUrl) {
+                popupContent += '<img src="' + marker.imageUrl + '" alt="' + marker.label + '">';
+              }
+              popupContent += '<h3>' + marker.label + '</h3>';
+              popupContent += '<p><strong>User:</strong> ' + marker.userId + '</p>';
+              if (marker.description && marker.description.trim() !== "") {
+                popupContent += '<p>' + marker.description + '</p>';
+              }
+              // Format the timestamp into a local date/time string.
+              var dateObj = new Date(marker.time);
+              popupContent += '<p><em>' + dateObj.toLocaleString() + '</em></p>';
+              popupContent += '</div>';
+
+              // Create a marker and bind the custom popup.
+              L.marker(latlng)
+                .addTo(map)
+                .bindPopup(popupContent);
+
+              bounds.push(latlng);
+            });
+
+            // Adjust the map view to include all markers.
+            if (bounds.length > 0) {
+              map.fitBounds(bounds, { padding: [10, 10] });
+            }
+          })
+          .catch(function (error) {
+            console.error("Error fetching markers:", error);
+          });
+      });
+    </script>
+  </body>
+</html>
