@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Map with Info Popups</title>
+    <title>SightTrack Map</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Leaflet CSS -->
     <link
@@ -12,10 +12,17 @@
       crossorigin=""
     />
     <style>
-      /* Set a fixed size for the map */
+      /* Remove default margins/padding and set full viewport height */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      /* Set the map container to fill the entire viewport */
       #map {
         width: 100%;
-        height: 800px; /* Adjust this as needed */
+        height: 100%;
       }
       /* Basic styling for the popup content */
       .popup-content img {
@@ -42,7 +49,7 @@
     ></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        // Initialize the map with a world view.
+        // Initialize the map to fill the entire page.
         var map = L.map("map").setView([0, 0], 2);
 
         // Use a tile layer without labels (CartoDB's light_nolabels).
@@ -61,6 +68,7 @@
             var bounds = [];
             markers.forEach(function (marker) {
               var latlng = [marker.latitude, marker.longitude];
+
               // Build the HTML content for the popup.
               var popupContent = '<div class="popup-content">';
               if (marker.imageUrl) {
