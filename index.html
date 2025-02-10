@@ -12,19 +12,24 @@
       crossorigin=""
     />
     <style>
-      /* Remove default margins/padding and set full viewport height */
-      html,
-      body {
+      /* Full-page layout with no margins/padding and a dark background */
+      html, body {
         height: 100%;
         margin: 0;
         padding: 0;
+        overflow: hidden;
+        background: #111;
       }
-      /* Set the map container to fill the entire viewport */
+
+      /* Map container fills the viewport and fades in when ready */
       #map {
         width: 100%;
         height: 100%;
+        opacity: 0;
+        transition: opacity 1.5s ease-in-out;
       }
-      /* Basic styling for the popup content */
+
+      /* Basic styling for popup content */
       .popup-content img {
         max-width: 100%;
         height: auto;
@@ -33,14 +38,50 @@
       }
       .popup-content h3 {
         margin: 0 0 5px;
+        color: #333;
       }
       .popup-content p {
         margin: 5px 0;
+        color: #555;
+      }
+
+      /* Loader styles */
+      #loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+      }
+      .spinner {
+        border: 8px solid rgba(255, 255, 255, 0.3);
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1.5s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Optional: Style the Leaflet popup to look modern */
+      .leaflet-popup-content-wrapper {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        border-radius: 4px;
+      }
+      .leaflet-popup-content {
+        font-family: Arial, sans-serif;
       }
     </style>
   </head>
   <body>
+    <!-- Loader spinner -->
+    <div id="loader"><div class="spinner"></div></div>
+    <!-- Map container -->
     <div id="map"></div>
+    
     <!-- Include Leaflet JS once -->
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -49,16 +90,19 @@
     ></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
-        // Initialize the map to fill the entire page.
-        var map = L.map("map").setView([0, 0], 2);
-
+        // Initialize the map with animation options.
+        var map = L.map("map", {
+          fadeAnimation: true,
+          zoomAnimation: true,
+          markerZoomAnimation: true
+        }).setView([0, 0], 2);
+        
         // Use a tile layer without labels (CartoDB's light_nolabels).
         L.tileLayer("https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
           maxZoom: 19,
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         }).addTo(map);
-
+        
         // Fetch marker data from your API.
         fetch("https://hy6sxmw15g.execute-api.us-east-1.amazonaws.com/prod/getPhotoMarkers")
           .then(function (response) {
@@ -68,7 +112,7 @@
             var bounds = [];
             markers.forEach(function (marker) {
               var latlng = [marker.latitude, marker.longitude];
-
+              
               // Build the HTML content for the popup.
               var popupContent = '<div class="popup-content">';
               if (marker.imageUrl) {
@@ -79,26 +123,35 @@
               if (marker.description && marker.description.trim() !== "") {
                 popupContent += '<p>' + marker.description + '</p>';
               }
-              // Format the timestamp into a local date/time string.
               var dateObj = new Date(marker.time);
               popupContent += '<p><em>' + dateObj.toLocaleString() + '</em></p>';
               popupContent += '</div>';
-
+              
               // Create a marker and bind the custom popup.
               L.marker(latlng)
                 .addTo(map)
                 .bindPopup(popupContent);
-
+              
               bounds.push(latlng);
             });
-
-            // Adjust the map view to include all markers.
+            
+            // Smoothly animate the view to include all markers using flyToBounds.
             if (bounds.length > 0) {
-              map.fitBounds(bounds, { padding: [10, 10] });
+              map.flyToBounds(bounds, {
+                padding: [20, 20],
+                duration: 2 // duration in seconds
+              });
             }
+            
+            // Once markers are loaded, remove the loader and fade in the map.
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("map").style.opacity = "1";
           })
           .catch(function (error) {
             console.error("Error fetching markers:", error);
+            // Even if an error occurs, hide the loader and show the map.
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("map").style.opacity = "1";
           });
       });
     </script>
